@@ -45,7 +45,7 @@ You need a Groq API key to run the application. Follow these steps:
 Create a ".env" file and store the api keys in that file
 
 ```
-GROQ_API_KEY=your_api_key_here
+GROQ_API_KEY="your_api_key_here"
 ```
 also store the link of your mysql database as given below in you .env file
 

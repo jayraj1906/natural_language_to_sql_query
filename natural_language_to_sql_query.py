@@ -25,10 +25,12 @@ from langgraph.graph.message import AnyMessage, add_messages
 
 load_dotenv()
 os.environ["GROQ_API_KEY"]=os.getenv("GROQ_API_KEY")
-os.environ["OPENAI_API_KEY"]=os.getenv("OPENAI_API_KEY")
-db=SQLDatabase.from_uri("mysql+mysqlconnector://root:Jayraj%401906@localhost:3306/netflix_data")
+# os.environ["OPENAI_API_KEY"]=os.getenv("OPENAI_API_KEY")
+database_link=os.getenv("DB")
+db=SQLDatabase.from_uri(database_link)
 
 llm_model = "deepseek-r1-distill-llama-70b"
+llm_model_2="llama-3.3-70b-versatile"
 class State(TypedDict):
     messages: Annotated[list[AnyMessage], add_messages]
 
@@ -103,7 +105,7 @@ Always call the `db_query_tool` function to execute the query after checking it.
 query_check_prompt = ChatPromptTemplate.from_messages(
     [("system", query_check_system), ("placeholder", "{messages}")]
 )
-query_check = query_check_prompt | ChatGroq(model="llama-3.3-70b-versatile", temperature=0).bind_tools(
+query_check = query_check_prompt | ChatGroq(model=llm_model_2, temperature=0).bind_tools(
     [db_query_tool], tool_choice="required"
 )
 ############################## LLM Will check if the generated query is correct or not #####################################
@@ -150,7 +152,7 @@ Nothing more, nothing less.
 query_gen_prompt = ChatPromptTemplate.from_messages(
     [("system", query_gen_system), ("placeholder", "{messages}")]
 )
-query_gen = query_gen_prompt | ChatGroq(model="llama-3.3-70b-versatile", temperature=0).bind_tools(
+query_gen = query_gen_prompt | ChatGroq(model=llm_model_2, temperature=0).bind_tools(
     [SubmitFinalAnswer]
 )
 
@@ -296,7 +298,7 @@ model_get_schema_prompt = ChatPromptTemplate.from_messages(
 )
 
 # Add a node for a model to choose the relevant tables based on the question and available tables
-model_get_schema = model_get_schema_prompt | ChatGroq(model=llm_model, temperature=0).bind_tools([get_schema_tool])
+model_get_schema = model_get_schema_prompt | ChatGroq(model=llm_model_2, temperature=0).bind_tools([get_schema_tool])
 
 # model_get_schema = ChatGroq(model=llm_model, temperature=0).bind_tools([get_schema_tool])
 

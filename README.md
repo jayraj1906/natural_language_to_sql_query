@@ -42,7 +42,7 @@ You need a Groq API key to run the application. Follow these steps:
 - Store the key in a secure location (you will need it later).
 
 ### 5. Create a .env file 
-Create a ".env" file and store the api keys in that file
+Create a **.env** file and store the api keys in that file
 
 ```
 GROQ_API_KEY="your_api_key_here"
@@ -52,10 +52,11 @@ also store the link of your mysql database as given below in you .env file
 ```
 DB="mysql+mysqlconnector://{user}:{password}@{host}:{port}/{database}"
 ```
-if you have special charaters in your password make sure to encode it ex: @ -> %40
+if you have special charaters in your password make sure to encode it ex: **@ -> %40**
 
 ### 6. Run the Application
-Finally, run the Streamlit application using the following command:
+Finally, all you have to do is write your query in the variable **user_query** in line 361 of "natural_language_to_sql_query.py" file.
+then execute the command below in your terminal
 
 ```bash
 python natural_language_to_sql_query.py

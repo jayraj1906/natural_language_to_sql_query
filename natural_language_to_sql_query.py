@@ -21,10 +21,13 @@ from typing_extensions import TypedDict
 
 from langgraph.graph import END, StateGraph, START
 from langgraph.graph.message import AnyMessage, add_messages
+from langchain_ollama import ChatOllama
+
+# llm = ChatOllama(model="llama3.1",temperature=0)
 
 
 load_dotenv()
-os.environ["GROQ_API_KEY"]=os.getenv("GROQ_API_KEY")
+# os.environ["GROQ_API_KEY"]=os.getenv("GROQ_API_KEY")
 # os.environ["OPENAI_API_KEY"]=os.getenv("OPENAI_API_KEY")
 database_link=os.getenv("DB")
 db=SQLDatabase.from_uri(database_link)
@@ -58,7 +61,7 @@ def handle_tool_error(state) -> dict:
     }
 
 
-toolkit = SQLDatabaseToolkit(db=db, llm=ChatGroq(model=llm_model))
+toolkit = SQLDatabaseToolkit(db=db, llm=ChatOllama(model="llama3.2",temperature=0))
 tools = toolkit.get_tools()
 ############################## Tools #####################################
 #Tool number 1
@@ -105,7 +108,7 @@ Always call the `db_query_tool` function to execute the query after checking it.
 query_check_prompt = ChatPromptTemplate.from_messages(
     [("system", query_check_system), ("placeholder", "{messages}")]
 )
-query_check = query_check_prompt | ChatGroq(model=llm_model_2, temperature=0).bind_tools(
+query_check = query_check_prompt | ChatOllama(model="llama3.2",temperature=0).bind_tools(
     [db_query_tool], tool_choice="required"
 )
 ############################## LLM Will check if the generated query is correct or not #####################################
@@ -152,7 +155,7 @@ Nothing more, nothing less.
 query_gen_prompt = ChatPromptTemplate.from_messages(
     [("system", query_gen_system), ("placeholder", "{messages}")]
 )
-query_gen = query_gen_prompt | ChatGroq(model=llm_model_2, temperature=0).bind_tools(
+query_gen = query_gen_prompt | ChatOllama(model="llama3.2",temperature=0).bind_tools(
     [SubmitFinalAnswer]
 )
 
@@ -197,7 +200,7 @@ Your task is to check if the retrieved schema contains all the columns needed to
 check_missing_prompt = ChatPromptTemplate.from_messages(
     [("system", check_for_missing_system_prompt), ("placeholder", "{messages}")]
 )
-missing_column = check_missing_prompt | ChatGroq(model=llm_model, temperature=0)
+missing_column = check_missing_prompt | ChatOllama(model="llama3.2",temperature=0)
 
 ############################## check_for_missing_system_prompt #####################################
 ############################## Node function calling #####################################
@@ -298,7 +301,7 @@ model_get_schema_prompt = ChatPromptTemplate.from_messages(
 )
 
 # Add a node for a model to choose the relevant tables based on the question and available tables
-model_get_schema = model_get_schema_prompt | ChatGroq(model=llm_model_2, temperature=0).bind_tools([get_schema_tool])
+model_get_schema = model_get_schema_prompt | ChatOllama(model="llama3.2",temperature=0).bind_tools([get_schema_tool])
 
 # model_get_schema = ChatGroq(model=llm_model, temperature=0).bind_tools([get_schema_tool])
 

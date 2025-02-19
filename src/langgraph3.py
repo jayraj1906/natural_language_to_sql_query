@@ -20,7 +20,7 @@ import spacy
 
 load_dotenv()
 nlp = spacy.load("en_core_web_sm")  # Load a suitable spaCy model
-os.environ["HF_KEY"]="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"
+os.environ["HF_KEY"]=os.getenv("HF_TOKEN")
 
 with open('C:/Jayraj/Codes/yashwant sir/graphDBSQL/database_schema.yaml', 'r') as file:
     schema_dict = yaml.safe_load(file)

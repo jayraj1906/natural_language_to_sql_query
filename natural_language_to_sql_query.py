@@ -32,8 +32,10 @@ load_dotenv()
 database_link=os.getenv("DB")
 db=SQLDatabase.from_uri(database_link)
 
-llm_model = "deepseek-r1-distill-llama-70b"
-llm_model_2="llama-3.3-70b-versatile"
+# llm_model = "deepseek-r1-distill-llama-70b"
+# llm_model_2="llama-3.3-70b-versatile"
+llm_model="deepseek-r1"
+llm_model_2="llama3.2"
 class State(TypedDict):
     messages: Annotated[list[AnyMessage], add_messages]
 
@@ -61,7 +63,7 @@ def handle_tool_error(state) -> dict:
     }
 
 
-toolkit = SQLDatabaseToolkit(db=db, llm=ChatOllama(model="llama3.2",temperature=0))
+toolkit = SQLDatabaseToolkit(db=db, llm=ChatOllama(model=llm_model,temperature=0))
 tools = toolkit.get_tools()
 ############################## Tools #####################################
 #Tool number 1
@@ -87,7 +89,7 @@ def db_query_tool(query: str) -> str:
 
 ############################## LLM Will check if the generated query is correct or not #####################################
 query_check_system="""You are a SQL expert with a strong attention to detail.
-Double-check the SQLite query for common mistakes, including:
+Double-check the SQL query for common mistakes, including:
 - Using NOT IN with NULL values
 - Using UNION when UNION ALL should have been used
 - Using BETWEEN for exclusive ranges
@@ -108,7 +110,7 @@ Always call the `db_query_tool` function to execute the query after checking it.
 query_check_prompt = ChatPromptTemplate.from_messages(
     [("system", query_check_system), ("placeholder", "{messages}")]
 )
-query_check = query_check_prompt | ChatOllama(model="llama3.2",temperature=0).bind_tools(
+query_check = query_check_prompt | ChatOllama(model=llm_model_2,temperature=0).bind_tools(
     [db_query_tool], tool_choice="required"
 )
 ############################## LLM Will check if the generated query is correct or not #####################################
@@ -122,7 +124,7 @@ class SubmitFinalAnswer(BaseModel):
     final_answer: str = Field(..., description="The final answer to the user")
 
 query_gen_system="""
-You are a SQL expert who only outputs valid, syntactically correct SQLite queries. 
+You are a SQL expert who only outputs valid, syntactically correct SQL queries. 
 
 Given an input question, strictly output **only** the SQL query—nothing else.
 
@@ -150,12 +152,14 @@ You **must** output:
 SELECT COUNT(*) FROM payments WHERE YEAR(paymentDate) = 2023;
 Nothing more, nothing less.
 
+
+
 """
 
 query_gen_prompt = ChatPromptTemplate.from_messages(
     [("system", query_gen_system), ("placeholder", "{messages}")]
 )
-query_gen = query_gen_prompt | ChatOllama(model="llama3.2",temperature=0).bind_tools(
+query_gen = query_gen_prompt | ChatOllama(model=llm_model_2,temperature=0).bind_tools(
     [SubmitFinalAnswer]
 )
 
@@ -200,7 +204,7 @@ Your task is to check if the retrieved schema contains all the columns needed to
 check_missing_prompt = ChatPromptTemplate.from_messages(
     [("system", check_for_missing_system_prompt), ("placeholder", "{messages}")]
 )
-missing_column = check_missing_prompt | ChatOllama(model="llama3.2",temperature=0)
+missing_column = check_missing_prompt | ChatOllama(model=llm_model,temperature=0)
 
 ############################## check_for_missing_system_prompt #####################################
 ############################## Node function calling #####################################
@@ -271,37 +275,36 @@ def missing_or_not(state: State) -> Literal["query_gen", "model_get_schema"]:
 
 ############################## Choosing relevant tables for schemas #####################################
 
-choosing_table_system="""
-You are a SQL assistant responsible for retrieving table schemas to help generate SQL queries.  
+choosing_table_system="""You are a SQL assistant responsible for retrieving table schemas.  
 Your task is to determine which tables are needed based on the user’s question **without making assumptions** about column existence.  
 
+You MUST first analyze the available tables from the previous `list_tables` tool response before selecting a table.  
+Once a table is selected, call `get_schema_tool` to retrieve its schema.  
+**Do NOT generate an SQL query. Your only task is to select a relevant table and fetch its schema.**  
+
 ### **Instructions:**
-1. **Identify Relevant Tables:**  
-   - Look at all available tables in the database.  
-   - Select tables that are likely to contain the required columns.  
+1. **Analyze Available Tables:**  
+   - Look at the user’s question and the tables listed in the previous `list_tables` tool response.  
+   - Identify which table(s) are likely to contain the required information.  
 
-2. **Check for Column Existence:**  
-   - Do not assume all required columns exist in the first table you choose.  
-   - Retrieve the schema of each selected table using the `get_schema_tool`.  
-   - **Verify** whether the required columns exist in the schema response.  
+2. **Select the Best Table:**  
+   - Choose the most relevant table based on the user’s input.  
+   - If multiple tables seem relevant, select the most appropriate one first.  
 
-3. **Handle Missing Columns:**  
-   - If a required column is **not found** in the retrieved schema, return an error:  
-     **"Error: Column '<column_name>' not found in '<table_name>'. Check other tables for this column."**  
-   - Continue searching other tables to locate the missing column.  
-   - If the column is found in another table, determine how the tables are related (e.g., using foreign keys) to join them correctly.  
+3. **Fetch Table Schema:**  
+   - Do **not** assume the required columns exist in the chosen table.  
+   - Retrieve the schema of the selected table using the `get_schema_tool`.  
 
 4. **Final Decision:**  
-   - If all required columns are found, proceed with query generation.  
-   - If any required column is **not found in any table**, return a final error:  
-     **"Error: The required column '<column_name>' was not found in any table. Please check the database structure."**  
-""" 
+   - Once the correct schema is retrieved, stop and return the schema details.  
+   - **Do NOT generate an SQL query**—your task is only to determine the correct table and fetch its schema.  
+   """
 model_get_schema_prompt = ChatPromptTemplate.from_messages(
     [("system", choosing_table_system), ("placeholder", "{messages}")]
 )
 
 # Add a node for a model to choose the relevant tables based on the question and available tables
-model_get_schema = model_get_schema_prompt | ChatOllama(model="llama3.2",temperature=0).bind_tools([get_schema_tool])
+model_get_schema = model_get_schema_prompt | ChatOllama(model=llm_model_2,temperature=0).bind_tools([get_schema_tool])
 
 # model_get_schema = ChatGroq(model=llm_model, temperature=0).bind_tools([get_schema_tool])
 
@@ -361,7 +364,7 @@ workflow.add_edge("execute_query", "query_gen")
 ############################## Edge Creation #####################################
 
 app = workflow.compile()
-user_query="What are the weekly top-ranked English-language movies as of December 9, 2024, including their view rank, title, hours viewed, runtime, total views, and cumulative weeks in the top 10, ordered by view rank in ascending order?"
+user_query="List me all the top 10 populated countries "
 # messages=app.invoke({"messages": [("user", user_query)]},{"recursion_limit": 100})
 
 # json_str = messages["messages"][-1].tool_calls[0]["args"]["final_answer"]

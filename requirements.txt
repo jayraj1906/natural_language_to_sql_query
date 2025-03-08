@@ -62,3 +62,5 @@ typing-inspect
 typing_extensions
 urllib3
 uvicorn
+spacy
+rank-bm25

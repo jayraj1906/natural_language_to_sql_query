@@ -261,6 +261,7 @@ def first_tool_call_spacy(state: State):
 workflow = StateGraph(State)
 workflow.add_node("spacyTool", first_tool_call_spacy)
 workflow.add_node("first_tool_call", first_tool_call)
+workflow.add_node("query_making_sense_or_not", first_tool_call)
 workflow.add_node("gen_query",query_gen_node)
 
 workflow.add_edge(START, "spacyTool")
